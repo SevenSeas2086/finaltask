@@ -1,0 +1,275 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Facemesh with Webcam</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.dom.min.js"></script>
+    <script
+      src="https://unpkg.com/ml5@latest/dist/ml5.min.js"
+      type="text/javascript"
+    ></script>
+
+    <style>
+      .center-box {
+        text-align: right;
+      }
+      .large-text {
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Facemesh with Webcam</h1>
+    <p class="center-box"><img id="mic" src="micoff.svg" /></p>
+    <div id="result-div" class="large-text"></div>
+    <script>
+      const resultDiv = document.querySelector("#result-div");
+      const micDiv = document.querySelector("#mic");
+      let speakingtime = 0;
+
+      let facemesh;
+      let video;
+      let predictions = [];
+      let img;
+      let imgr;
+      let imgl;
+      let imgn;
+
+      function preload() {
+        imgr = loadImage("img/rightear.png");
+        imgl = loadImage("img/leftear.png");
+        imgn = loadImage("img/nose.png");
+        img1 = loadImage("img/rightear.png");
+        img2 = loadImage("img/leftear.png");
+        img3 = loadImage("img/nose.png");
+        img4 = loadImage("img/pig-rightear.png");
+        img5 = loadImage("img/pig-leftear.png");
+        img6 = loadImage("img/pig-nose.png");
+        img7 = loadImage("img/mouse-rightear.png");
+        img8 = loadImage("img/mouse-leftear.png");
+        img9 = loadImage("img/mouse-nose.png");
+        img10 = loadImage("img/rabbit-rightear.png");
+        img11 = loadImage("img/rabbit-leftear.png");
+        img12 = loadImage("img/rabbit-nose.png");
+      }
+
+      function setup() {
+        createCanvas(640, 480);
+        video = createCapture(VIDEO);
+        video.size(width, height);
+
+        facemesh = ml5.facemesh(video, modelReady);
+
+        // This sets up an event that fills the global variable "predictions"
+        // with an array every time new predictions are made
+        facemesh.on("predict", (results) => {
+          predictions = results;
+        });
+
+        video.hide();
+      }
+
+      function modelReady() {
+        console.log("Model ready!");
+      }
+
+      // 音声認識機能(Chrome)
+      let rec = new webkitSpeechRecognition();
+      let stopped = true;
+      rec.continuous = true;
+      rec.interimResults = false;
+      rec.lang = "ja-JP";
+
+      micDiv.onclick = function () {
+        if (stopped == true) {
+          stopped = false;
+          resultDiv.innerHTML = "";
+          rec.start();
+        } else {
+          stopped = true;
+          rec.stop();
+        }
+      };
+
+      rec.onstart = function () {
+        console.log("on start");
+        micDiv.setAttribute("src", "micon.svg");
+        speakingtime = 0;
+      };
+
+      rec.onend = function () {
+        console.log("on end");
+        micDiv.setAttribute("src", "micoff.svg");
+        if (stopped == false) {
+          setTimeout(function () {
+            rec.start();
+          }, speakingtime);
+        }
+      };
+
+      rec.onresult = function (e) {
+        rec.stop();
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            console.log(e);
+            let text = e.results[i][0].transcript;
+            resultDiv.innerHTML = text;
+            text = dialogue(text);
+            console.log(text);
+            speakingtime = text.length * 200;
+            console.log("estimate:", speakingtime, "ms");
+            speak(text);
+          }
+        }
+      };
+
+      function dialogue(input) {
+        if (/くま/.test(input)) {
+          drawKeypoints();
+          return "くまですね";
+          imgr = img1;
+          imgl = img2;
+          imgn = img3;
+        } else if (/豚/.test(input)) {
+          drawKeypointspig();
+          return "ぶたですね";
+          imgr = img4;
+          imgl = img5;
+          imgn = img6;
+        } else if (/ネズミ/.test(input)) {
+          drawKeypointsmouse();
+          return "ねずみですね";
+          imgr = img7;
+          imgl = img8;
+          imgn = img9;
+        } else if (/うさぎ/.test(input)) {
+          drawKeypointsrabbit();
+          return "うさぎですね";
+          imgr = img10;
+          imgl = img11;
+          imgn = img12;
+        } else {
+          return "よくわかりません";
+        }
+      }
+
+      // 発話機能をインスタンス化
+      let msg = new SpeechSynthesisUtterance();
+
+      function speak(text) {
+        msg.volume = 1.0; // 音量 min 0 ~ max 1
+        msg.rate = 1.0; // 速度 min 0 ~ max 10
+        msg.pitch = 1.0; // 音程 min 0 ~ max 2
+
+        msg.text = text; // 喋る内容
+        msg.lang = "ja-JP"; // en-US or ja-JP
+        //msg.lang = "en-US"; // en-US or ja-JP
+
+        // 発話実行
+        speechSynthesis.speak(msg);
+      }
+
+      // 終了時の処理
+      msg.onend = function (event) {
+        console.log("喋った時間：" + event.elapsedTime + "ms");
+      };
+
+      // We can call both functions to draw all keypoints
+
+      function drawKeypoints() {
+        image(video, 0, 0, width, height);
+        for (let i = 0; i < predictions.length; i += 1) {
+          //image(video, 0, 0, width, height);
+          const keypoints = predictions[i].scaledMesh;
+
+          const [x, y] = keypoints[103]; // 右耳
+
+          image(imgr, x - 50, y - 70, 70, 70);
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[332]; // 左耳
+
+            image(imgl, x - 15, y - 70, 70, 70);
+          }
+
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[5]; // 鼻
+
+            image(imgn, x - 40, y - 15, 80, 50);
+          }
+        }
+      }
+      function drawKeypointspig() {
+        image(video, 0, 0, width, height);
+        for (let i = 0; i < predictions.length; i += 1) {
+          //image(video, 0, 0, width, height);
+          const keypoints = predictions[i].scaledMesh;
+
+          const [x, y] = keypoints[103]; // 右耳
+
+          image(img4, x - 50, y - 70, 70, 70);
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[332]; // 左耳
+
+            image(img5, x - 15, y - 70, 70, 70);
+          }
+
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[5]; // 鼻
+
+            image(img6, x - 40, y - 15, 80, 50);
+          }
+        }
+      }
+      function drawKeypointsmouse() {
+        image(video, 0, 0, width, height);
+        for (let i = 0; i < predictions.length; i += 1) {
+          const keypoints = predictions[i].scaledMesh;
+
+          const [x, y] = keypoints[103]; // 右耳
+
+          image(img7, x - 50, y - 110, 100, 100);
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[332]; // 左耳
+
+            image(img8, x - 35, y - 110, 100, 100);
+          }
+
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[5]; // 鼻
+
+            image(img9, x - 55, y - 10, 110, 40);
+          }
+        }
+      }
+      function drawKeypointsrabbit() {
+        image(video, 0, 0, width, height);
+        for (let i = 0; i < predictions.length; i += 1) {
+          const keypoints = predictions[i].scaledMesh;
+
+          const [x, y] = keypoints[103]; // 右耳
+
+          image(img10, x - 50, y - 120, 100, 100);
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[332]; // 左耳
+
+            image(img11, x - 15, y - 120, 100, 100);
+          }
+
+          for (let i = 0; i < predictions.length; i += 1) {
+            const keypoints = predictions[i].scaledMesh;
+            const [x, y] = keypoints[5]; // 鼻
+
+            image(img12, x - 60, y - 20, 120, 60);
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

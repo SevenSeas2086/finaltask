@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="googleSheets.js"></script>
+  </head>
+  <body>
+    <button id="mybtn">実行</button>
+    <div id="contents"></div>
+
+    <script>
+      $(function () {
+        /* global $ loadSheets */
+        const sheetId = "1h2YCbSnvBlZLoj-apeRxPCR2KshY3-OX4sCjE9gJOy0";
+        //https://docs.google.com/spreadsheets/d/1h2YCbSnvBlZLoj-apeRxPCR2KshY3-OX4sCjE9gJOy0/edit?usp=sharing
+        // const range = "mycats001!A1:E100";
+        const range = "test!A1:E100";
+        const max = 3;
+
+        $("#mybtn").on("click", showdata);
+        async function showdata() {
+          var data = await loadSheets(sheetId, range);
+          //console.log(data.values[0][0]);
+          for (var i = 1; i <= max; i++) {
+            //for (let s = 1; s <= max; s++) {
+            //   $("#contents").append(
+            //     "<img height='100px' src='" + data.values[i][s] + "'/>"
+            //   );
+            // }
+            // $("#contents").append(data.values[i][1]);
+            $("#contents").append(
+              "<img height='100px' src='" + data.values[i][1] + "'/>"
+            );
+            $("#contents").append(
+              "<img height='100px' src='" + data.values[i][2] + "'/>"
+            );
+            $("#contents").append(
+              "<img height='100px' src='" + data.values[i][3] + "'/>"
+            );
+            // $("#contents").append(data.values[i][3]);
+            $("#contents").append("<br>");
+          }
+        }
+      });
+    </script>
+    <script
+      async
+      defer
+      src="https://apis.google.com/js/api.js"
+      onload="handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()"
+    ></script>
+  </body>
+</html>
